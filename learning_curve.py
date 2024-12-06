@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import re                           # regular expressions
+import sys
 
 
 LINE_PREAMBLE = "[INFO] TrainerAgent.onGameEnd: After "
@@ -11,7 +12,8 @@ LINE_POSTAMBLE = "phase(s), avg trajectory utility = "
 
 def load(path: str) -> np.ndarray:
     data: List[Tuple[int, float]] = list()
-
+    bestPos = -1
+    bestVal = -10000000
     try:
         with open(path, "r") as f:
             for line in f:
@@ -19,9 +21,15 @@ def load(path: str) -> np.ndarray:
                     values_str = line.strip().rstrip().replace(LINE_PREAMBLE, "").replace(LINE_POSTAMBLE, "")
                     phase_idx, avg_utility = re.sub(r'\s+', ' ', values_str.strip().rstrip()).strip().rstrip().split(" ")
                     data.append([float(phase_idx), float(avg_utility)])
+                    if (float(avg_utility) > bestVal) :
+                        bestVal = float(avg_utility)
+                        bestPos = float(phase_idx)
+                    
+                    
     except:
         pass
-
+    print("Val: ", bestVal)
+    print("Phase: ", bestPos)
     return np.array(data)
 
 
