@@ -101,7 +101,6 @@ public class TetrisQAgent
         double bumpiness = 0.0; 
         double holePenalty = 0.0;
         double clearedLinesBonus = 0.0;
-        double totalHeight = 0.0;
 
         Matrix flattenedImage = null;
         try
@@ -142,6 +141,9 @@ public class TetrisQAgent
                 else if (flattenedImage.get(row, col) == 0.0) {
                     if (columnHeights[col] != -1) {
                         holePenalty += 1.0; // Increment hole penalty for each hole
+                        //print if there is a hole
+                        // System.out.println("Hole at row=" + row + " col=" + col);
+                        //
                     }
                 }
             }
@@ -149,13 +151,39 @@ public class TetrisQAgent
                 clearedLinesBonus += 1.0; // Award bonus for each line cleared
             }
         }
+        /*
+        for (int col = 0; col < Board.NUM_COLS; col++) {
+            boolean lineCleared = true; 
+            for (int row = 0; row < Board.NUM_ROWS; row++) {
+                System.out.println("row: " + row + ", col: " + col);
+                double cell = 0.0; 
+                if (board.isCoordinateOccupied(col, row)) {
+                    isBoardEmpty = false;
+                    // Set the height of the column when a block is found
+                    columnHeights[col] = Board.NUM_ROWS - row; 
+                    //System.out.println("Board occupied at cell: " + col + ", " + row);
+                    lineCleared = false; 
+                    // If any cell in the row is empty, the line is not cleared
+                }
+                else {
+                    //cell = 0.0;
+                    holePenalty += 1.0; // Increment hole penalty for each hole
+                    //print if there is a hole
+                    //System.out.println("Hole at row=" + row + " col=" + col);
+                    if(row == Board.NUM_ROWS - 1 && lineCleared && !isBoardEmpty){
+                        completedRows += 1;
+                    }
 
+                }
+            }
+        }
+        */
         // calculate max height
+
         for (int i = 0; i < Board.NUM_COLS; i++) {
             if (columnHeights[i] != -1 && maxHeight < columnHeights[i]) {
                 maxHeight = columnHeights[i];
             }
-            totalHeight += columnHeights[i];
         }
         // calculate bumpiness
         for (int col = 0; col < Board.NUM_COLS - 1; col++) {
@@ -171,13 +199,6 @@ public class TetrisQAgent
             }
             bumpiness += Math.abs(height1 - height2); // Add the difference in heights between adjacent columns
         }
-        // Encourage column height uniformity (reduce variance)
-        double meanHeight = totalHeight / (double) Board.NUM_COLS;
-        double heightVariance = 0.0;
-        for (int i = 0; i < columnHeights.length; i ++) {
-            heightVariance += Math.pow(columnHeights[i] - meanHeight, 2);
-        }
-        heightVariance /= Board.NUM_COLS;
 
 
 
@@ -185,8 +206,7 @@ public class TetrisQAgent
         features.set(0, 0, maxHeight);
         features.set(0, 1, holePenalty);
         features.set(0, 2, clearedLinesBonus);
-        // features.set(0, 3, bumpiness);
-        features.set(0, 3, heightVariance);
+        features.set(0, 3, bumpiness);
 
 
 
@@ -422,7 +442,6 @@ public class TetrisQAgent
         double maxHeight = -1;
         double bumpiness = 0.0; 
         double holePenalty = 0.0;
-        double totalHeight = 0.0;
 
         boolean isBoardEmpty = true;
         int completedRows = 0;
@@ -482,23 +501,12 @@ public class TetrisQAgent
         */
 
         // calculate max height
+
         for (int i = 0; i < Board.NUM_COLS; i++) {
             if (columnHeights[i] != -1 && maxHeight < columnHeights[i]) {
                 maxHeight = columnHeights[i];
             }
-            totalHeight += columnHeights[i];
         }
-
-        // Encourage column height uniformity (reduce variance)
-        double meanHeight = totalHeight / (double) Board.NUM_COLS;
-        double heightVariance = 0.0;
-        for (int i = 0; i < columnHeights.length; i ++) {
-            heightVariance += Math.pow(columnHeights[i] - meanHeight, 2);
-        }
-        heightVariance /= Board.NUM_COLS;
-
-
-        // calculate bumpiness
         for (int col = 0; col < Board.NUM_COLS - 1; col++) {
             int height1 = 0;
             int height2 = 0;
@@ -517,11 +525,15 @@ public class TetrisQAgent
         int turnScore = game.getScoreThisTurn();
 
         // gives a heigher reward if it clears more than 1 line bc that actually scores more points
-        reward += completedRows * 70.0;
-        reward -= maxHeight * 90.0;
-        // reward -= bumpiness * 50.0;
-        reward -= heightVariance * 50.0;
-        reward -= holePenalty * 40.0;
+        if (completedRows >= 2) {
+            reward += completedRows * 70.0;
+        }
+        else {
+            reward += completedRows * 40.0;
+        }
+        reward -= maxHeight * 80.0;
+        reward -= bumpiness * 50.0;
+        reward -= holePenalty * 30.0;
         reward += turnScore * 40.0;
         return reward;
     }
